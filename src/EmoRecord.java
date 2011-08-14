@@ -2,6 +2,10 @@ import java.awt.AWTException;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
@@ -22,7 +26,7 @@ import java.awt.Desktop;
 //Additional functionality added by Anthony Chen
 
 /** Simple example of JNA interface mapping and usage. */
-public class EmoRecord extends JFrame implements KeyListener
+public class EmoRecord extends JFrame implements KeyListener, ItemListener, ActionListener
 {
 	public boolean run= true;
 	
@@ -86,9 +90,17 @@ public class EmoRecord extends JFrame implements KeyListener
     	
 		//Listeners
     	addKeyListener(this);
+		exciteshortcheck.addItemListener(this);
+		excitelongcheck.addItemListener(this);
+		engagementcheck.addItemListener(this);
+		frustrationcheck.addItemListener(this);
+		meditationcheck.addItemListener(this);
+		startbutton.addActionListener(this);
+		startbutton.setEnabled(true);
+    	
+    	
 		pack();
 		setVisible(true);
-		Thread.sleep(3000); //Pause for setup
     }
     
     /* Quits logging */
@@ -109,7 +121,13 @@ public class EmoRecord extends JFrame implements KeyListener
 		BufferedWriter out= new BufferedWriter(fstream);
 		
 		//Categories
-		out.write("Time,Short Term Excitement,Long Term Excitement,Engagement-Boredom\n");
+		out.write("Time");
+		if (exciteshort) out.write(",Short Term Excitement");
+		if (excitelong)	out.write(",Long Time Excitement");
+		if (engagement) out.write(",Engagement/Boredom");
+		if (frustration) out.write(",Frustration");
+		if (meditation)	out.write(",Meditation");
+		out.write("\n");
 		
 		Pointer eEvent			= Edk.INSTANCE.EE_EmoEngineEventCreate();
     	Pointer eState			= Edk.INSTANCE.EE_EmoStateCreate();
@@ -146,8 +164,6 @@ public class EmoRecord extends JFrame implements KeyListener
 			System.out.println("Invalid option...");
 			return;
     	}
-    	
-    	//long timeinit= System.currentTimeMillis();
     	boolean first= true;
     	float init= 0;
     	float timestamp= 0;
@@ -179,28 +195,18 @@ public class EmoRecord extends JFrame implements KeyListener
 					//System.out.println(timestamp + " : New EmoState from user " + userID.getValue());
 					//long currenttime= System.currentTimeMillis() - timeinit;
 					
-					String dataline = timestamp + ",";
+					String dataline = timestamp + "";
 					System.out.println(timestamp);
 					
-					/*System.out.print("WirelessSignalStatus: ");
-					System.out.println(EmoState.INSTANCE.ES_GetWirelessSignalStatus(eState));
-					if (EmoState.INSTANCE.ES_ExpressivIsBlink(eState) == 1)
-						System.out.println("Blink");
-					if (EmoState.INSTANCE.ES_ExpressivIsLeftWink(eState) == 1)
-						System.out.println("LeftWink");
-					if (EmoState.INSTANCE.ES_ExpressivIsRightWink(eState) == 1)
-						System.out.println("RightWink");
-					if (EmoState.INSTANCE.ES_ExpressivIsLookingLeft(eState) == 1)
-						System.out.println("LookingLeft");
-					if (EmoState.INSTANCE.ES_ExpressivIsLookingRight(eState) == 1)
-						System.out.println("LookingRight");*/
-
-					dataline= dataline + EmoState.INSTANCE.ES_AffectivGetExcitementShortTermScore(eState) + ",";
-					dataline= dataline + EmoState.INSTANCE.ES_AffectivGetExcitementLongTermScore(eState) + ",";
-					dataline= dataline + EmoState.INSTANCE.ES_AffectivGetEngagementBoredomScore(eState);
+					if (exciteshort) dataline= dataline + "," + EmoState.INSTANCE.ES_AffectivGetExcitementShortTermScore(eState);
+					if (excitelong)	dataline= dataline + "," + EmoState.INSTANCE.ES_AffectivGetExcitementLongTermScore(eState);
+					if (engagement) dataline= dataline + "," +  EmoState.INSTANCE.ES_AffectivGetEngagementBoredomScore(eState);
+					if (frustration) dataline= dataline + "," +  EmoState.INSTANCE.ES_AffectivGetFrustrationScore(eState);
+					if (meditation)	dataline= dataline + "," +  EmoState.INSTANCE.ES_AffectivGetMeditationScore(eState);
 					dataline= dataline + "\n";
 					
 					out.write(dataline);
+					
 				}
 			}
 			else if (state != EdkErrorCode.EDK_NO_EVENT.ToInt()) {
@@ -218,10 +224,6 @@ public class EmoRecord extends JFrame implements KeyListener
     {
 		try {
 			EmoRecord logger= new EmoRecord();
-			logger.run();
-		} 
-		catch (IOException e){
-			e.printStackTrace();
 		} 
 		catch (InterruptedException e){
 			e.printStackTrace();
@@ -230,10 +232,43 @@ public class EmoRecord extends JFrame implements KeyListener
 			e.printStackTrace();
 		}
     }
-	
+    
 	public void keyReleased(KeyEvent arg0) {
 	}
 
 	public void keyTyped(KeyEvent arg0) {
+	}
+
+	//Checkbox
+	public void itemStateChanged(ItemEvent e) {
+		Object source = e.getItemSelectable();
+
+	    if (source == excitelongcheck) {
+	    	if (e.getStateChange() == ItemEvent.SELECTED) excitelong= true;
+	    	else if (e.getStateChange() == ItemEvent.DESELECTED) excitelong= false;
+	    } else if (source == exciteshortcheck) {
+	    	if (e.getStateChange() == ItemEvent.SELECTED) exciteshort= true;
+	    	else if (e.getStateChange() == ItemEvent.DESELECTED) exciteshort= false;
+	    } else if (source == engagementcheck) {
+	    	if (e.getStateChange() == ItemEvent.SELECTED) engagement= true;
+	    	else if (e.getStateChange() == ItemEvent.DESELECTED) engagement= false;
+	    } else if (source == frustrationcheck) {
+	    	if (e.getStateChange() == ItemEvent.SELECTED) frustration= true;
+	    	else if (e.getStateChange() == ItemEvent.DESELECTED) frustration= false;
+	    } else if (source == meditationcheck) {
+	    	if (e.getStateChange() == ItemEvent.SELECTED) meditation= true;
+	    	else if (e.getStateChange() == ItemEvent.DESELECTED) meditation= false;
+	    }
+	}
+
+	//Button
+	public void actionPerformed(ActionEvent e){
+		 if (e.getSource() == startbutton) {
+			 try {
+				run();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		 }
 	}
 }
