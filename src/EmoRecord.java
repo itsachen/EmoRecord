@@ -26,7 +26,7 @@ import java.awt.Desktop;
 //Additional functionality added by Anthony Chen
 
 /** Simple example of JNA interface mapping and usage. */
-public class EmoRecord extends JFrame implements KeyListener, ItemListener, ActionListener
+public class EmoRecord extends JFrame implements KeyListener, ItemListener, ActionListener, Runnable
 {
 	public boolean run= true;
 	
@@ -50,6 +50,7 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 	
 	//Buttons
 	private JButton startbutton = new JButton("Start Record");
+	private JButton stopbutton= new JButton("Stop Record");
 	
 	//GUI
     public EmoRecord() throws AWTException, InterruptedException{
@@ -82,6 +83,7 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
     	
     	//Adding components
     	pnlWest.add(startbutton);
+    	pnlWest.add(stopbutton);
     	pnlEast.add(exciteshortcheck);
     	pnlEast.add(excitelongcheck);
     	pnlEast.add(engagementcheck);
@@ -97,6 +99,8 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 		meditationcheck.addItemListener(this);
 		startbutton.addActionListener(this);
 		startbutton.setEnabled(true);
+		stopbutton.addActionListener(this);
+		stopbutton.setEnabled(true);
     	
     	
 		pack();
@@ -116,8 +120,9 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
     }
     
     /* Runs logging */
-    public void run() throws IOException{
-    	FileWriter fstream= new FileWriter("output2.csv");
+    public void run(){
+    	try{
+    	FileWriter fstream= new FileWriter("output.csv");
 		BufferedWriter out= new BufferedWriter(fstream);
 		
 		//Categories
@@ -218,6 +223,10 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
     	Edk.INSTANCE.EE_EngineDisconnect();
     	System.out.println("Disconnected!");
     	out.close();
+    	}
+    	catch (IOException e) {
+    		e.printStackTrace();
+		}
     }
 	
 	public static void main(String[] args) 
@@ -264,11 +273,11 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 	//Button
 	public void actionPerformed(ActionEvent e){
 		 if (e.getSource() == startbutton) {
-			 try {
-				run();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
+			 Thread thread = new Thread(this);
+			 thread.start();
+		 }
+		 else if (e.getSource() == stopbutton){
+			 quit();
 		 }
 	}
 }
