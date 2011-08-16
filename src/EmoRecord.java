@@ -229,8 +229,7 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 		}
     }
 	
-	public static void main(String[] args) 
-    {
+	public static void main(String[] args){
 		try {
 			EmoRecord logger= new EmoRecord();
 		} 
