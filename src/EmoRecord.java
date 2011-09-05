@@ -102,7 +102,6 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 		stopbutton.addActionListener(this);
 		stopbutton.setEnabled(true);
     	
-    	
 		pack();
 		setVisible(true);
     }
@@ -117,6 +116,11 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
     /* Quit function */
     public void quit(){
     	run= false;
+    }
+    
+    /* Start function */
+    public void start(){
+    	run= true;
     }
     
     /* Runs logging */
@@ -171,11 +175,16 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
     	}
     	boolean first= true;
     	float init= 0;
+    	long initsystem= 0;
+    	double timestampsystem= 0;
     	float timestamp= 0;
     		
+    	long former= -1;
     	
 		while (run) 
 		{
+			//long time = (long) (((System.currentTimeMillis()*.1) % 1)* 10);
+			
 			state = Edk.INSTANCE.EE_EngineGetNextEvent(eEvent);
 
 			// New event needs to be handled
@@ -188,30 +197,40 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 				if (eventType == Edk.EE_Event_t.EE_EmoStateUpdated.ToInt()) {
 
 					Edk.INSTANCE.EE_EmoEngineEventGetEmoState(eEvent, eState);
+					
+					//Time initialization
 					if (first){
 						timestamp= 0;
 						init= EmoState.INSTANCE.ES_GetTimeFromStart(eState);
+						initsystem= System.currentTimeMillis();
 						first= false;
 					}
 					else{
-					timestamp = EmoState.INSTANCE.ES_GetTimeFromStart(eState) - init;
+						timestamp = EmoState.INSTANCE.ES_GetTimeFromStart(eState) - init;
+						timestampsystem= (System.currentTimeMillis() - initsystem) * .001;
 					}
 					
-					//System.out.println(timestamp + " : New EmoState from user " + userID.getValue());
-					//long currenttime= System.currentTimeMillis() - timeinit;
+					int current= (int)((timestampsystem % 1) * 10);
+					double realtimestamp= (double)((int)(timestampsystem*10))/10; 
 					
-					String dataline = timestamp + "";
-					System.out.println(timestamp);
-					
-					if (exciteshort) dataline= dataline + "," + EmoState.INSTANCE.ES_AffectivGetExcitementShortTermScore(eState);
-					if (excitelong)	dataline= dataline + "," + EmoState.INSTANCE.ES_AffectivGetExcitementLongTermScore(eState);
-					if (engagement) dataline= dataline + "," +  EmoState.INSTANCE.ES_AffectivGetEngagementBoredomScore(eState);
-					if (frustration) dataline= dataline + "," +  EmoState.INSTANCE.ES_AffectivGetFrustrationScore(eState);
-					if (meditation)	dataline= dataline + "," +  EmoState.INSTANCE.ES_AffectivGetMeditationScore(eState);
-					dataline= dataline + "\n";
-					
-					out.write(dataline);
-					
+					if (current != former){
+						System.out.println(realtimestamp);
+						former= current;
+						
+						//System.out.println(timestamp + " : New EmoState from user " + userID.getValue());
+						//long currenttime= System.currentTimeMillis() - timeinit;
+						 
+						String dataline = realtimestamp + "";
+						
+						if (exciteshort) dataline= dataline + "," + EmoState.INSTANCE.ES_AffectivGetExcitementShortTermScore(eState);
+						if (excitelong)	dataline= dataline + "," + EmoState.INSTANCE.ES_AffectivGetExcitementLongTermScore(eState);
+						if (engagement) dataline= dataline + "," +  EmoState.INSTANCE.ES_AffectivGetEngagementBoredomScore(eState);
+						if (frustration) dataline= dataline + "," +  EmoState.INSTANCE.ES_AffectivGetFrustrationScore(eState);
+						if (meditation)	dataline= dataline + "," +  EmoState.INSTANCE.ES_AffectivGetMeditationScore(eState);
+						dataline= dataline + "\n";
+						
+						out.write(dataline);
+					}
 				}
 			}
 			else if (state != EdkErrorCode.EDK_NO_EVENT.ToInt()) {
@@ -241,10 +260,10 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 		}
     }
     
-	public void keyReleased(KeyEvent arg0) {
+	public void keyReleased(KeyEvent arg0){
 	}
 
-	public void keyTyped(KeyEvent arg0) {
+	public void keyTyped(KeyEvent arg0){
 	}
 
 	//Checkbox
@@ -271,12 +290,16 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 
 	//Button
 	public void actionPerformed(ActionEvent e){
-		 if (e.getSource() == startbutton) {
-			 Thread thread = new Thread(this);
-			 thread.start();
-		 }
-		 else if (e.getSource() == stopbutton){
-			 quit();
-		 }
+		//Start button pressed
+		if (e.getSource() == startbutton) {
+			start();
+
+			Thread thread = new Thread(this);
+			thread.start();
+		}
+		//End button
+		else if (e.getSource() == stopbutton){
+			quit();
+		}
 	}
 }
