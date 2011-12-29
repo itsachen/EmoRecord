@@ -36,6 +36,7 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 	private boolean engagement= true;
 	private boolean frustration= true;
 	private boolean meditation= true;
+	private boolean locationset= false;//
 	
 	//Checkboxes
 	private JCheckBox exciteshortcheck = new JCheckBox("Instantaneous Excitement");
@@ -47,17 +48,34 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 	//Panels
 	private JPanel pnlEast = new JPanel(); //East section
 	private JPanel pnlWest = new JPanel(); //West section 
+	private JPanel pnlSouth = new JPanel(); //South section
+	
+	private GroupLayout layout = new GroupLayout(getContentPane());
 	
 	//Buttons
 	private JButton startbutton = new JButton("Start Record");
 	private JButton stopbutton= new JButton("Stop Record");
+	private JButton saveas= new JButton("Save as...");
+	
+	//Text entries
+	private JTextField namefield= new JTextField();
+	private JTextField datefield= new JTextField();
+	private JTextField timefield= new JTextField();
+	
+	//Labels
+	private JLabel namelabel= new JLabel("Participant name:");
+	private JLabel datelabel= new JLabel("Date:");
+	private JLabel timelabel= new JLabel("Time:");
+	
+	//Save location
+	private String filename= "output.csv"; //Default filename
 	
 	//GUI
     public EmoRecord() throws AWTException, InterruptedException{
     	
     	//JFrame initialization
-    	setTitle("Emotional State Record");
-		setPreferredSize(new Dimension(360, 180));
+    	setTitle("EmoState Record v1.1");
+		setPreferredSize(new Dimension(360, 290));
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
@@ -72,23 +90,35 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 		getContentPane().setLayout(new BorderLayout());
     	pnlEast.setLayout(new BoxLayout(pnlEast, BoxLayout.PAGE_AXIS));
     	pnlWest.setLayout(new BoxLayout(pnlWest, BoxLayout.PAGE_AXIS));
+    	pnlSouth.setLayout(new BoxLayout(pnlSouth, BoxLayout.PAGE_AXIS));
     	
     	//Padding
     	pnlEast.setBorder(new EmptyBorder(10, 10, 10, 10));
     	pnlWest.setBorder(new EmptyBorder(10, 10, 10, 10));
+    	pnlSouth.setBorder(new EmptyBorder(10, 10, 10, 10));
 		
 		//Panel assignments
     	getContentPane().add(pnlWest, BorderLayout.WEST);
     	getContentPane().add(pnlEast, BorderLayout.EAST);
+    	getContentPane().add(pnlSouth, BorderLayout.SOUTH);
     	
     	//Adding components
     	pnlWest.add(startbutton);
     	pnlWest.add(stopbutton);
+    	pnlWest.add(saveas);
+    	
     	pnlEast.add(exciteshortcheck);
     	pnlEast.add(excitelongcheck);
     	pnlEast.add(engagementcheck);
     	pnlEast.add(frustrationcheck);
     	pnlEast.add(meditationcheck);
+    	
+    	pnlSouth.add(namelabel);
+    	pnlSouth.add(namefield);
+    	pnlSouth.add(datelabel);
+    	pnlSouth.add(datefield);
+    	pnlSouth.add(timelabel);
+    	pnlSouth.add(timefield);
     	
 		//Listeners
     	addKeyListener(this);
@@ -101,6 +131,11 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 		startbutton.setEnabled(true);
 		stopbutton.addActionListener(this);
 		stopbutton.setEnabled(true);
+		saveas.addActionListener(this);
+		saveas.setEnabled(true);
+		namefield.addActionListener(this);
+		datefield.addActionListener(this);
+		timefield.addActionListener(this);
     	
 		pack();
 		setVisible(true);
@@ -126,12 +161,26 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
     /* Runs logging */
     public void run(){
     	try{
-    	FileWriter fstream= new FileWriter("output.csv");
+    	//Output file location
+    	
+    	FileWriter fstream= new FileWriter(filename);
 		BufferedWriter out= new BufferedWriter(fstream);
+		
+		//Write log info
+		if (!namefield.getText().equals("")){
+			out.write(namefield.getText() + "\n");
+		}
+		if (!datefield.getText().equals("")){
+			out.write(datefield.getText() + "\n");
+		}
+		if (!timefield.getText().equals("")){
+			out.write(timefield.getText() + "\n");
+		}
+		
 		
 		//Categories
 		out.write("Time");
-		if (exciteshort) out.write(",Short Term Excitement");
+		if (exciteshort) out.write(",Short Term Excitementt");
 		if (excitelong)	out.write(",Long Time Excitement");
 		if (engagement) out.write(",Engagement/Boredom");
 		if (frustration) out.write(",Frustration");
@@ -164,15 +213,18 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 
 			if (Edk.INSTANCE.EE_EngineRemoteConnect("127.0.0.1", port, "Emotiv Systems-5") != EdkErrorCode.EDK_OK.ToInt()) {
 				System.out.println("Cannot connect to EmoComposer on [127.0.0.1]");
+				out.close(); //Cannot connect, close the buffer
 				return;
 			}
 			System.out.println("Connected to EmoComposer on [127.0.0.1]");
+			out.close(); //Cannot connect, close the buffer
 			break;
 		}
 		default:
 			System.out.println("Invalid option...");
 			return;
     	}
+    	
     	boolean first= true;
     	float init= 0;
     	long initsystem= 0;
@@ -183,8 +235,6 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
     	
 		while (run) 
 		{
-			//long time = (long) (((System.currentTimeMillis()*.1) % 1)* 10);
-			
 			state = Edk.INSTANCE.EE_EngineGetNextEvent(eEvent);
 
 			// New event needs to be handled
@@ -216,9 +266,6 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 					if (current != former){
 						System.out.println(realtimestamp);
 						former= current;
-						
-						//System.out.println(timestamp + " : New EmoState from user " + userID.getValue());
-						//long currenttime= System.currentTimeMillis() - timeinit;
 						 
 						String dataline = realtimestamp + "";
 						
@@ -266,6 +313,26 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 	public void keyTyped(KeyEvent arg0){
 	}
 
+	public String saveAs(){
+    	//File chooser stuffs
+    	JFileChooser chooser = new JFileChooser();
+    	chooser.setVisible(true);
+    	chooser.setCurrentDirectory(new java.io.File("."));
+    	
+    	chooser.setDialogTitle("Choose a file name for the .jpg");
+    	
+    	chooser.setAcceptAllFileFilterUsed(false);
+    	
+    	if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+    		System.out.println(chooser.getSelectedFile().toString());
+    		return chooser.getSelectedFile().toString();
+    	}
+    	else {
+    		System.out.println("No Selection!");
+    		return null;
+    	}
+    }
+	
 	//Checkbox
 	public void itemStateChanged(ItemEvent e) {
 		Object source = e.getItemSelectable();
@@ -300,6 +367,15 @@ public class EmoRecord extends JFrame implements KeyListener, ItemListener, Acti
 		//End button
 		else if (e.getSource() == stopbutton){
 			quit();
+		}
+		//Save as button
+		else if (e.getSource() == saveas){
+			System.out.println("Save as...");
+			String temp= saveAs(); //Absolute loc
+			
+			if (temp != null){
+				filename= temp;
+			}
 		}
 	}
 }

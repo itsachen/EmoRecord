@@ -1,4 +1,4 @@
-# EmoRecord v1.0
+# EmoRecord v1.1
 
 ## Overview
 
@@ -12,7 +12,6 @@ This project should be downloaded and added as a project in Eclipse.
 ## Features to be added/changed
 
 1. GUI improvements
-2. Ability to choose save location/filename
-3. Timer
-4. Real-time plotting
-5. Collect program into one jar
+2. Timer
+3. Real-time plotting
+4. Collect program into one jar
